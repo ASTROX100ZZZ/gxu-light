@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f6f7f9">
+<title>南门红绿灯 · 广西大学</title>
+<style>
+  :root{
+    --red:#e5484d; --green:#30a46c; --blue:#2563eb;
+    --bg:#f6f7f9; --card:#ffffff; --text:#1c2024; --sub:#6b7280;
+    --line:#e5e7eb; --warn:#d97706;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--text); min-height:100vh;
+    display:flex; justify-content:center;
+  }
+  .app{width:100%; max-width:520px; padding:16px 16px 48px;}
+  h1{font-size:18px; margin:8px 0 2px; text-align:center;}
+  .sub{text-align:center; color:var(--sub); font-size:12px; margin-bottom:16px;}
+
+  .dial-card{background:var(--card); border-radius:24px; padding:28px 16px 24px;
+    box-shadow:0 4px 24px rgba(0,0,0,.06); text-align:center;}
+  .dial{
+    width:220px; height:220px; margin:0 auto; border-radius:50%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    transition:background .5s, box-shadow .5s;
+  }
+  .dial.red  {background:radial-gradient(circle at 35% 30%, #ff6b6f, var(--red));
+              box-shadow:0 0 60px rgba(229,72,77,.45);}
+  .dial.green{background:radial-gradient(circle at 35% 30%, #4ecb8f, var(--green));
+              box-shadow:0 0 60px rgba(48,164,108,.45);}
+  .dial .state{color:#fff; font-size:22px; font-weight:700; letter-spacing:6px;}
+  .dial .sec{color:#fff; font-size:76px; font-weight:800; line-height:1.05; font-variant-numeric:tabular-nums;}
+  .dial .unit{color:rgba(255,255,255,.85); font-size:14px;}
+  .mini-lights{display:flex; gap:14px; justify-content:center; margin-top:18px;}
+  .mini-lights span{width:16px; height:16px; border-radius:50%; background:#d1d5db; transition:.3s;}
+  .mini-lights .r.on{background:var(--red); box-shadow:0 0 10px var(--red);}
+  .mini-lights .g.on{background:var(--green); box-shadow:0 0 10px var(--green);}
+  .cycle-info{margin-top:12px; color:var(--sub); font-size:12px; line-height:1.7;}
+
+  .advice{
+    margin-top:14px; background:var(--card); border-radius:16px; padding:14px 16px;
+    box-shadow:0 2px 12px rgba(0,0,0,.05); font-size:15px; line-height:1.7;
+  }
+  .advice b{font-size:17px;}
+  .advice .ok{color:var(--green);} .advice .wait{color:var(--red);}
+
+  .walk-row{display:flex; align-items:center; gap:10px; margin-top:14px;
+    background:var(--card); border-radius:16px; padding:12px 16px; box-shadow:0 2px 12px rgba(0,0,0,.05);}
+  .walk-row label{font-size:14px; color:var(--sub); white-space:nowrap;}
+  .walk-row input[type=range]{flex:1; accent-color:var(--blue);}
+  .walk-row .val{font-size:15px; font-weight:700; min-width:64px; text-align:right; font-variant-numeric:tabular-nums;}
+
+  .windows{margin-top:14px; background:var(--card); border-radius:16px; padding:12px 16px;
+    box-shadow:0 2px 12px rgba(0,0,0,.05);}
+  .windows h2{font-size:14px; margin:2px 0 8px; color:var(--sub); font-weight:600;}
+  .windows table{width:100%; border-collapse:collapse; font-size:14px;}
+  .windows td{padding:7px 4px; border-top:1px solid var(--line); font-variant-numeric:tabular-nums;}
+  .windows tr:first-child td{border-top:none;}
+  .windows .go{font-weight:700; color:var(--blue);}
+  .windows .now{color:var(--green); font-weight:700;}
+
+  details{margin-top:14px; background:var(--card); border-radius:16px;
+    box-shadow:0 2px 12px rgba(0,0,0,.05); overflow:hidden;}
+  summary{padding:14px 16px; font-size:15px; font-weight:600; cursor:pointer; list-style:none;}
+  summary::after{content:"▸"; float:right; color:var(--sub); transition:.2s;}
+  details[open] summary::after{transform:rotate(90deg);}
+  .panel{padding:0 16px 16px;}
+  .hint{font-size:12px; color:var(--sub); line-height:1.7; margin:0 0 12px;}
+  .hint b{color:var(--text);}
+
+  .obs-row{display:flex; gap:8px; align-items:stretch;}
+  .obs-row .color-pick{display:flex; flex:0 0 auto; border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  .color-pick button{
+    border:none; background:#fff; padding:0 14px; font-size:15px; font-weight:700; cursor:pointer;
+  }
+  .color-pick button.sel-r{background:var(--red); color:#fff;}
+  .color-pick button.sel-g{background:var(--green); color:#fff;}
+  .obs-input{
+    flex:1; min-width:0; border:1px solid var(--line); border-radius:12px;
+    padding:12px 10px; font-size:17px; text-align:center; font-variant-numeric:tabular-nums;
+  }
+  .obs-submit{
+    flex:0 0 auto; border:none; border-radius:12px; padding:0 16px;
+    background:var(--blue); color:#fff; font-size:15px; font-weight:700; cursor:pointer;
+  }
+  .quick-row{display:flex; gap:8px; margin-top:10px;}
+  .quick-row button{
+    flex:1; border:1px solid var(--line); background:#fff; border-radius:10px;
+    padding:9px 0; font-size:13px; cursor:pointer;
+  }
+  .quick-row button:active{background:#f3f4f6;}
+
+  .delay-row{display:flex; align-items:center; gap:8px; margin-top:14px;
+    border:1px dashed var(--line); border-radius:12px; padding:10px 12px; font-size:13px;}
+  .delay-row .v{font-weight:700; font-variant-numeric:tabular-nums; color:var(--blue);}
+  .delay-row .adj{margin-left:auto; display:flex; gap:6px;}
+  .delay-row .adj button{
+    width:34px; height:28px; border:1px solid var(--line); background:#fff; border-radius:8px;
+    font-size:15px; cursor:pointer; line-height:1;
+  }
+
+  .samples{margin-top:14px;}
+  .samples h3{font-size:13px; color:var(--sub); margin:0 0 6px; font-weight:600;}
+  .sample-item{
+    display:flex; align-items:center; gap:8px; font-size:12px; padding:6px 4px;
+    border-top:1px solid var(--line); font-variant-numeric:tabular-nums; color:var(--text);
+  }
+  .sample-item .dot{width:9px; height:9px; border-radius:50%; flex:0 0 auto;}
+  .sample-item .dot.r{background:var(--red);} .sample-item .dot.g{background:var(--green);}
+  .sample-item .tag{margin-left:auto; font-size:11px; color:var(--sub);}
+  .sample-item .tag.low{color:var(--warn);}
+  .sample-item.out{opacity:.45;}
+  .sample-empty{font-size:12px; color:var(--sub); padding:6px 0;}
+
+  .fit-btn{
+    width:100%; margin-top:12px; border:none; border-radius:12px; padding:12px 0;
+    background:var(--blue); color:#fff; font-size:15px; font-weight:700; cursor:pointer;
+  }
+  .fit-result{
+    margin-top:10px; border-radius:12px; background:#eff6ff; border:1px solid #bfdbfe;
+    padding:10px 12px; font-size:13px; line-height:1.8; display:none;
+  }
+  .fit-result b{color:var(--blue);}
+
+  .backup-row{display:flex; gap:8px;}
+  .backup-row button{
+    flex:1; border:1px solid var(--line); background:#fff; border-radius:10px;
+    padding:11px 0; font-size:14px; cursor:pointer;
+  }
+  .backup-row button.primary{background:var(--blue); color:#fff; border-color:var(--blue);}
+  .backup-row button.danger{color:var(--red);}
+  #importFile{display:none;}
+
+  .footer{text-align:center; color:#9ca3af; font-size:11px; margin-top:18px; line-height:1.8;}
+
+  /* 防捣蛋提示 */
+  .guard-mask{
+    position:fixed; inset:0; background:rgba(0,0,0,.55); display:none;
+    align-items:center; justify-content:center; z-index:60; padding:20px;
+  }
+  .guard-card{
+    background:#fff; border-radius:20px; padding:22px 20px; width:100%; max-width:360px;
+  }
+  .guard-card h3{margin:0 0 8px; font-size:16px; color:var(--warn);}
+  .guard-card p{font-size:13px; color:var(--text); line-height:1.8; margin:0 0 14px;}
+  .guard-card .btns{display:flex; flex-direction:column; gap:8px;}
+  .guard-card button{
+    border:1px solid var(--line); background:#fff; border-radius:10px;
+    padding:11px 0; font-size:14px; cursor:pointer;
+  }
+  .guard-card button.force{color:var(--warn); font-weight:700;}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🚦 南门红绿灯</h1>
+  <div class="sub">广西大学南门西侧路口 · 多次观测拟合配时</div>
+
+  <div class="dial-card">
+    <div class="dial red" id="dial">
+      <div class="state" id="stateText">红灯</div>
+      <div class="sec" id="secText">--</div>
+      <div class="unit">秒后变灯</div>
+    </div>
+    <div class="mini-lights">
+      <span class="r" id="dotR"></span><span class="g" id="dotG"></span>
+    </div>
+    <div class="cycle-info" id="cycleInfo"></div>
+  </div>
+
+  <div class="advice" id="advice"></div>
+
+  <div class="walk-row">
+    <label>🚶 走到路口需要</label>
+    <input type="range" id="walkRange" min="30" max="900" step="10" value="300">
+    <div class="val" id="walkVal">5分00秒</div>
+  </div>
+
+  <div class="windows">
+    <h2>接下来 3 个绿灯窗口 · 建议出发时刻</h2>
+    <table id="winTable"></table>
+  </div>
+
+  <details open>
+    <summary>🎯 观测校准（报读秒，越测越准）</summary>
+    <div class="panel">
+      <p class="hint">
+        在路口看到读秒时，选灯色、填剩余秒数、点提交——<b>时间戳在你点击瞬间本地记录</b>，
+        再自动扣除反应延迟。每条观测会换算成一个"变灯边界时刻"，积累多条后点下方
+        <b>重新拟合</b>，即可反推出真实的红/绿时长（101s/40s 只是初始估计）。<br>
+        🛡️ <b>防捣蛋保护</b>：与当前模型预测偏差超过 8 秒的输入会被拦截提示，
+        强制采纳也只按 30% 权重参与拟合；拟合时残差超 5 秒的样本自动剔除。
+      </p>
+      <div class="obs-row">
+        <div class="color-pick">
+          <button id="pickR" class="sel-r">🔴 红灯</button>
+          <button id="pickG">🟢 绿灯</button>
+        </div>
+        <input class="obs-input" id="obsRemain" type="number" inputmode="decimal"
+               min="0" max="600" step="0.5" placeholder="剩?秒">
+        <button class="obs-submit" id="obsSubmit">提交</button>
+      </div>
+      <div class="quick-row">
+        <button id="qRed">现在刚变红（=红灯剩 R 秒）</button>
+        <button id="qGreen">现在刚变绿（=绿灯剩 G 秒）</button>
+      </div>
+
+      <div class="delay-row">
+        ⏱️ 反应延迟补偿：<span class="v" id="drVal">0.50s</span>（自动从观测中扣除）
+        <span class="adj">
+          <button id="drMinus">−</button>
+          <button id="drPlus">+</button>
+        </span>
+      </div>
+
+      <div class="samples">
+        <h3>观测样本（最近 8 条 / 共 <span id="sampleCount">0</span> 条）</h3>
+        <div id="sampleList"><div class="sample-empty">还没有观测数据，去路口报一次读秒吧。</div></div>
+      </div>
+
+      <button class="fit-btn" id="fitBtn">🧮 重新拟合配时参数</button>
+      <div class="fit-result" id="fitResult"></div>
+    </div>
+  </details>
+
+  <details>
+    <summary>💾 数据备份与迁移（防服务不可用）</summary>
+    <div class="panel">
+      <p class="hint">
+        全部数据（观测样本、拟合参数、设置）都保存在<b>本机浏览器</b>，断网也能用。
+        定期点"导出备份"把 JSON 文件存到微信文件传输助手/网盘；
+        换手机、换浏览器或未来云端服务不可用时，"导入恢复"即可原样搬家。
+      </p>
+      <div class="backup-row">
+        <button class="primary" id="exportBtn">⬇️ 导出备份</button>
+        <button id="importBtn">⬆️ 导入恢复</button>
+        <button class="danger" id="clearBtn">🗑️ 清空</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json,.json">
+    </div>
+  </details>
+
+  <div class="footer">
+    初始配时 红 101s / 绿 40s 为人工粗估，经多次观测拟合后会自动修正。<br>
+    仅供出行参考，过马路请看灯不看手机。
+  </div>
+</div>
+
+<!-- 防捣蛋提示 -->
+<div class="guard-mask" id="guardMask">
+  <div class="guard-card">
+    <h3>🛡️ 防捣蛋保护已触发</h3>
+    <p id="guardText"></p>
+    <div class="btns">
+      <button id="guardRetry">✏️ 是我输错了，重新输入</button>
+      <button class="force" id="guardForce">⚠️ 确认无误，强制采纳（30% 权重）</button>
+      <button id="guardCancel">取消本次输入</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var LSKEY = 'gxu.v2';
+
+  // ============ 数据存储（单一 JSON，本地优先） ============
+  function loadStore(){
+    try{
+      var s = JSON.parse(localStorage.getItem(LSKEY));
+      if(s && s.params && Array.isArray(s.samples)) return s;
+    }catch(e){}
+    var s = {
+      version: 2,
+      samples: [],                       // {t,color,remain,B,w,dev}
+      params: { R:101, G:40, anchor: Date.now(), fitted:false, rms:null, nUsed:0, nTotal:0, fittedAt:null },
+      dr: 0.5,                           // 反应延迟补偿（秒）
+      walkSec: 300
+    };
+    // 兼容旧版数据
+    try{
+      var oa = parseFloat(localStorage.getItem('gxu.anchor'));
+      if(oa && !isNaN(oa)) s.params.anchor = oa;
+      var ow = parseInt(localStorage.getItem('gxu.walk'),10);
+      if(ow) s.walkSec = ow;
+    }catch(e){}
+    return s;
+  }
+  var store = loadStore();
+  function save(){
+    localStorage.setItem(LSKEY, JSON.stringify(store));
+    // 安卓 App 内运行时，同步参数给桌面小组件
+    try{ if(window.GxuAndroid) window.GxuAndroid.sync(JSON.stringify(store)); }catch(e){}
+  }
+
+  // ============ 灯态推算 ============
+  function cycle(){ return store.params.R + store.params.G; }
+  function mod(x, m){ return ((x % m) + m) % m; }
+
+  function stateAt(tMs){
+    var P = store.params, C = cycle();
+    var e = mod(tMs - P.anchor, C*1000) / 1000;   // 秒
+    if(e < P.R) return { color:'red',   remain: P.R - e };
+    return            { color:'green', remain: C - e };
+  }
+
+  // 观测 → 变灯边界时刻（秒）。color=red 表示红→绿边界，green 表示绿→红边界
+  function deviation(Bs, color){
+    var P = store.params, C = cycle(), a = P.anchor/1000;
+    var base = (color==='red') ? (a + P.R) : a;   // 该色边界在周期中的位置
+    var k = Math.round((Bs - base)/C);
+    return Math.abs(Bs - (base + k*C));
+  }
+
+  // ============ DOM ============
+  var $ = function(id){ return document.getElementById(id); };
+  var dial=$('dial'), stateText=$('stateText'), secText=$('secText'),
+      dotR=$('dotR'), dotG=$('dotG'), cycleInfo=$('cycleInfo'),
+      advice=$('advice'), winTable=$('winTable'),
+      walkRange=$('walkRange'), walkVal=$('walkVal'),
+      pickR=$('pickR'), pickG=$('pickG'),
+      obsRemain=$('obsRemain'), obsSubmit=$('obsSubmit'),
+      drVal=$('drVal'), sampleList=$('sampleList'), sampleCount=$('sampleCount'),
+      fitBtn=$('fitBtn'), fitResult=$('fitResult');
+
+  var obsColor = 'red';
+  function renderPick(){
+    pickR.className = obsColor==='red' ? 'sel-r' : '';
+    pickG.className = obsColor==='green' ? 'sel-g' : '';
+  }
+  pickR.addEventListener('click', function(){ obsColor='red'; renderPick(); });
+  pickG.addEventListener('click', function(){ obsColor='green'; renderPick(); });
+
+  walkRange.value = store.walkSec;
+  walkVal.textContent = fmtWalk(store.walkSec);
+  drVal.textContent = store.dr.toFixed(2)+'s';
+  renderPick();
+
+  function fmtClock(tMs){
+    var d=new Date(tMs);
+    function p(n){return (n<10?'0':'')+n;}
+    return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+  }
+  function fmtDur(s){
+    s=Math.max(0,Math.round(s));
+    var m=Math.floor(s/60), r=s%60;
+    return (m>0? m+'分':'') + (r<10&&m>0?'0':'') + r + '秒';
+  }
+  function fmtWalk(s){
+    var m=Math.floor(s/60), r=s%60;
+    return m+'分'+(r<10?'0':'')+r+'秒';
+  }
+
+  // ============ 主渲染 ============
+  function render(){
+    var now = Date.now();
+    var st = stateAt(now);
+    var isRed = st.color==='red';
+    var P = store.params;
+
+    dial.className = 'dial ' + st.color;
+    stateText.textContent = isRed ? '红灯' : '绿灯';
+    secText.textContent = Math.ceil(st.remain);
+    dotR.className = 'r' + (isRed?' on':'');
+    dotG.className = 'g' + (!isRed?' on':'');
+
+    var info = '周期 '+cycle().toFixed(1)+'s（红 '+P.R.toFixed(1)+'s / 绿 '+P.G.toFixed(1)+'s）';
+    if(P.fitted){
+      info += '<br>✅ 已用 '+P.nUsed+'/'+P.nTotal+' 条观测拟合 · RMS 误差 '+P.rms.toFixed(2)+'s'
+            + ' · ' + fmtClock(P.fittedAt) + ' 更新';
+    }else if(store.samples.length>0){
+      info += '<br>📊 已积累 '+store.samples.length+' 条观测，满 3 条可拟合';
+    }else{
+      info += '<br>⚠️ 未校准（初始估计值），请到路口报读秒';
+    }
+    cycleInfo.innerHTML = info;
+
+    renderAdvice(now);
+    renderWindows(now);
+  }
+
+  function renderAdvice(now){
+    var arrival = now + store.walkSec*1000;
+    var st = stateAt(arrival);
+    var MARGIN = 3, html;
+    if(st.color==='green' && st.remain >= MARGIN){
+      html = '✅ <b class="ok">现在出发正好！</b><br>步行 '+fmtWalk(store.walkSec)
+           + ' 后到达路口（'+fmtClock(arrival)+'），绿灯还剩 <b>'+Math.floor(st.remain)+' 秒</b>，从容通过。';
+    } else if(st.color==='green'){
+      var wait = st.remain + store.params.R + MARGIN;
+      html = '⏳ <b class="wait">建议等 '+fmtDur(wait)+' 再出发</b><br>现在出发到达时绿灯只剩 '
+           + Math.ceil(st.remain)+' 秒，太赶。'+fmtClock(now+wait*1000)+' 出发正好赶下一个绿灯。';
+    } else {
+      var wait2 = st.remain + MARGIN;
+      html = '⏳ <b class="wait">建议等 '+fmtDur(wait2)+' 再出发</b><br>现在出发到达路口（'+fmtClock(arrival)
+           + '）还是红灯，要等 '+Math.ceil(st.remain)+' 秒。'+fmtClock(now+wait2*1000)+' 出发正好赶上绿灯。';
+    }
+    advice.innerHTML = html;
+  }
+
+  function renderWindows(now){
+    var C = cycle()*1000, P = store.params;
+    var e = mod(now - P.anchor, C);
+    var toGreenStart = (e < P.R*1000) ? (P.R*1000 - e) : (C - e) + P.R*1000;
+    var rows = '';
+    for(var i=0;i<3;i++){
+      var gStart = now + toGreenStart + i*C;
+      var depart = gStart + 3000 - store.walkSec*1000;
+      var dStr = depart <= now ? '<span class="now">现在就走</span>'
+                               : '<span class="go">'+fmtClock(depart)+' 出发</span>';
+      rows += '<tr><td>绿灯 '+fmtClock(gStart)+' – '+fmtClock(gStart+P.G*1000)+'</td>'
+            + '<td style="text-align:right">'+dStr+'</td></tr>';
+    }
+    winTable.innerHTML = rows;
+  }
+
+  // ============ 观测提交（含防捣蛋） ============
+  var pendingObs = null;
+
+  function submitObservation(color, remain){
+    if(!(remain>=0) || remain>600){ alert('请输入 0–600 之间的秒数'); return; }
+    var t = Date.now();                        // 本地即时打戳，无网络参与
+    var Bs = t/1000 - store.dr + remain;       // 扣除反应延迟后的变灯边界时刻（秒）
+    var dev = store.params.fitted ? deviation(Bs, color) : 0;
+    var obs = { t:t, color:color, remain:remain, B:Bs, w:1, dev:dev };
+
+    if(store.params.fitted && dev > 8){
+      // 触发防捣蛋保护
+      pendingObs = obs;
+      $('guardText').innerHTML =
+        '你输入的「'+ (color==='red'?'红灯':'绿灯') + ' 剩 '+remain+' 秒」与当前模型预测的变灯时刻偏差 <b>'
+        + dev.toFixed(1)+' 秒</b>（阈值 8 秒）。<br>可能是看错了灯、记错了秒数，或路口配时刚调整过。'
+        + '<br>若确实是配时调整，建议改用"刚变红/刚变绿"快捷校准。';
+      $('guardMask').style.display = 'flex';
+      return;
+    }
+    commitObservation(obs);
+  }
+
+  function commitObservation(obs){
+    store.samples.push(obs);
+    if(store.samples.length > 200) store.samples = store.samples.slice(-200);
+    save();
+    obsRemain.value = '';
+    renderSamples();
+    render();
+  }
+
+  $('guardRetry').addEventListener('click', function(){
+    $('guardMask').style.display='none'; pendingObs=null; obsRemain.focus();
+  });
+  $('guardCancel').addEventListener('click', function(){
+    $('guardMask').style.display='none'; pendingObs=null; obsRemain.value='';
+  });
+  $('guardForce').addEventListener('click', function(){
+    $('guardMask').style.display='none';
+    if(pendingObs){ pendingObs.w = 0.3; commitObservation(pendingObs); pendingObs=null; }
+  });
+
+  obsSubmit.addEventListener('click', function(){
+    submitObservation(obsColor, parseFloat(obsRemain.value));
+  });
+  obsRemain.addEventListener('keydown', function(e){
+    if(e.key==='Enter') submitObservation(obsColor, parseFloat(obsRemain.value));
+  });
+
+  // 快捷校准：刚变红 = 红灯剩 R 秒；刚变绿 = 绿灯剩 G 秒
+  $('qRed').addEventListener('click', function(){ submitObservation('red', store.params.R); });
+  $('qGreen').addEventListener('click', function(){ submitObservation('green', store.params.G); });
+
+  // ============ 反应延迟微调 ============
+  $('drMinus').addEventListener('click', function(){
+    store.dr = Math.max(0, Math.round((store.dr-0.05)*100)/100);
+    save(); drVal.textContent = store.dr.toFixed(2)+'s';
+  });
+  $('drPlus').addEventListener('click', function(){
+    store.dr = Math.min(3, Math.round((store.dr+0.05)*100)/100);
+    save(); drVal.textContent = store.dr.toFixed(2)+'s';
+  });
+
+  // ============ 样本列表 ============
+  function renderSamples(){
+    sampleCount.textContent = store.samples.length;
+    var S = store.samples.slice(-8).reverse();
+    if(S.length===0){
+      sampleList.innerHTML = '<div class="sample-empty">还没有观测数据，去路口报一次读秒吧。</div>';
+      return;
+    }
+    var html = '';
+    S.forEach(function(s){
+      var lowW = s.w < 1;
+      var out = store.params.fitted && s.dev > 5;
+      html += '<div class="sample-item'+(out?' out':'')+'">'
+        + '<span class="dot '+(s.color==='red'?'r':'g')+'"></span>'
+        + fmtClock(s.t) + ' · 剩 ' + s.remain + 's'
+        + '<span class="tag'+(lowW?' low':'')+'">'
+        + (out ? '已剔除' : (lowW ? '低权重30%' : (store.params.fitted? '偏差 '+s.dev.toFixed(1)+'s' : '已记录')))
+        + '</span></div>';
+    });
+    sampleList.innerHTML = html;
+  }
+
+  // ============ 参数拟合：网格搜索 + IRLS 精修 ============
+  function fitParams(){
+    var S = store.samples.slice(-50);
+    if(S.length < 3){
+      alert('至少需要 3 条观测才能拟合，当前 '+S.length+' 条。\n去路口报几次读秒再来。');
+      return;
+    }
+    var P0 = store.params, best = null;
+
+    for(var R=Math.max(5,P0.R-15); R<=P0.R+15; R+=0.5){
+      for(var G=Math.max(5,P0.G-15); G<=P0.G+15; G+=0.5){
+        var C = R+G;
+        for(var j=0;j<S.length;j++){
+          var oj = S[j].color==='red' ? R : 0;
+          var a = mod(S[j].B - oj, C), cost = 0;
+          for(var i=0;i<S.length;i++){
+            var oi = S[i].color==='red' ? R : 0;
+            var r = mod(S[i].B - oi - a, C); if(r > C/2) r -= C;
+            cost += S[i].w * r * r;
+          }
+          if(!best || cost < best.cost) best = { R:R, G:G, a:a, cost:cost };
+        }
+      }
+    }
+
+    // IRLS 精修相位（仅内点参与）
+    var a = best.a, C = best.R + best.G;
+    for(var it=0; it<8; it++){
+      var sw=0, sr=0;
+      for(var i=0;i<S.length;i++){
+        var oi = S[i].color==='red' ? best.R : 0;
+        var r = mod(S[i].B - oi - a, C); if(r > C/2) r -= C;
+        var w = Math.abs(r) <= 5 ? S[i].w : 0;
+        sw += w; sr += w*r;
+      }
+      if(sw === 0) break;
+      var shift = sr/sw;
+      a = mod(a + shift, C);
+      if(Math.abs(shift) < 0.005) break;
+    }
+
+    // 最终残差与 RMS
+    var n=0, sum=0;
+    for(var i=0;i<S.length;i++){
+      var oi = S[i].color==='red' ? best.R : 0;
+      var r = mod(S[i].B - oi - a, C); if(r > C/2) r -= C;
+      S[i].dev = Math.abs(r);
+      if(Math.abs(r) <= 5){ n++; sum += S[i].w*r*r; }
+    }
+    var rms = n>0 ? Math.sqrt(sum/n) : 0;
+
+    store.params = {
+      R: Math.round(best.R*10)/10,
+      G: Math.round(best.G*10)/10,
+      anchor: a*1000,
+      fitted: true, rms: rms, nUsed: n, nTotal: S.length, fittedAt: Date.now()
+    };
+    save();
+
+    fitResult.style.display = 'block';
+    fitResult.innerHTML = '🧮 <b>拟合完成</b>（'+S.length+' 条观测，采用 '+n+' 条，剔除 '+(S.length-n)+' 条）<br>'
+      + '红灯 <b>'+store.params.R.toFixed(1)+'s</b>（原估计 '+P0.R.toFixed(1)+'s） · '
+      + '绿灯 <b>'+store.params.G.toFixed(1)+'s</b>（原估计 '+P0.G.toFixed(1)+'s）<br>'
+      + 'RMS 残差 <b>'+rms.toFixed(2)+'s</b>'
+      + (rms<=2 ? ' —— 拟合质量很好' : rms<=4 ? ' —— 基本可用，多测几条会更准' : ' —— 偏差偏大，建议在不同时段多测几条');
+    renderSamples();
+    render();
+  }
+  fitBtn.addEventListener('click', fitParams);
+
+  // ============ 备份 / 导入 / 清空 ============
+  $('exportBtn').addEventListener('click', function(){
+    save();
+    var blob = new Blob([JSON.stringify(store, null, 2)], {type:'application/json'});
+    var a = document.createElement('a');
+    var d = new Date();
+    function p(n){return (n<10?'0':'')+n;}
+    a.href = URL.createObjectURL(blob);
+    a.download = 'gxu-light-backup-'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+'.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  });
+
+  $('importBtn').addEventListener('click', function(){ $('importFile').click(); });
+  $('importFile').addEventListener('change', function(e){
+    var f = e.target.files[0]; if(!f) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var s = JSON.parse(reader.result);
+        if(!s || !s.params || !Array.isArray(s.samples)) throw new Error('bad format');
+        store = s; save();
+        walkRange.value = store.walkSec; walkVal.textContent = fmtWalk(store.walkSec);
+        drVal.textContent = store.dr.toFixed(2)+'s';
+        fitResult.style.display='none';
+        renderSamples(); render();
+        alert('✅ 导入成功：'+store.samples.length+' 条观测已恢复。');
+      }catch(err){
+        alert('❌ 文件格式不对，请确认是本 App 导出的备份 JSON。');
+      }
+    };
+    reader.readAsText(f);
+    e.target.value = '';
+  });
+
+  $('clearBtn').addEventListener('click', function(){
+    if(confirm('确定清空全部观测和拟合参数？此操作不可恢复（建议先导出备份）。')){
+      localStorage.removeItem(LSKEY);
+      store = loadStore(); save();
+      fitResult.style.display='none';
+      renderSamples(); render();
+    }
+  });
+
+  // ============ 步行时间 ============
+  walkRange.addEventListener('input', function(){
+    store.walkSec = parseInt(walkRange.value,10);
+    walkVal.textContent = fmtWalk(store.walkSec);
+    save(); render();
+  });
+
+  // ============ 主循环 ============
+  renderSamples();
+  render();
+  setInterval(render, 200);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) render(); });
+})();
+</script>
+</body>
+</html>
