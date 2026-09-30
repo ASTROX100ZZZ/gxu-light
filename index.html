@@ -115,6 +115,12 @@
   .sample-item .dot.r{background:var(--red);} .sample-item .dot.g{background:var(--green);}
   .sample-item .tag{margin-left:auto; font-size:11px; color:var(--sub);}
   .sample-item .tag.low{color:var(--warn);}
+  .sample-item .del{
+    flex:0 0 auto; margin-left:8px; width:22px; height:22px; border-radius:50%;
+    border:1px solid var(--line); color:#9ca3af; font-size:11px; line-height:20px;
+    text-align:center; cursor:pointer; user-select:none;
+  }
+  .sample-item .del:active{background:#fee2e2; color:var(--red); border-color:var(--red);}
   .sample-item.out{opacity:.45;}
   .sample-empty{font-size:12px; color:var(--sub); padding:6px 0;}
 
@@ -195,7 +201,9 @@
         再自动扣除反应延迟。每条观测会换算成一个"变灯边界时刻"，积累多条后点下方
         <b>重新拟合</b>，即可反推出真实的红/绿时长（101s/44s 只是初始估计）。<br>
         🛡️ <b>防捣蛋保护</b>：与当前模型预测偏差超过 8 秒的输入会被拦截提示，
-        强制采纳也只按 30% 权重参与拟合；拟合时残差超 5 秒的样本自动剔除。
+        强制采纳也只按 30% 权重参与拟合；拟合时残差超 5 秒的样本自动剔除。<br>
+        ☁️ <b>云端众包</b>：你的每次提交会匿名汇入云端样本池，近 24 小时样本中位数融合后
+        共享给所有打开 App 的人——一人校准、大家受益；云端不可用时自动退回纯本地模式。
       </p>
       <div class="obs-row">
         <div class="color-pick">
@@ -218,6 +226,13 @@
           <button id="drPlus">+</button>
         </span>
       </div>
+
+      <div class="delay-row">
+        🔑 管理码：<input id="adminCode" type="password" placeholder="普通用户留空即可"
+          style="flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;">
+        <span class="adj"><button id="adminBtn" style="width:auto;padding:0 12px;">激活</button></span>
+      </div>
+      <div class="hint" id="adminStatus" style="display:none;margin-top:6px;margin-bottom:0;"></div>
 
       <div class="samples">
         <h3>观测样本（最近 8 条 / 共 <span id="sampleCount">0</span> 条）</h3>
@@ -265,6 +280,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"></script>
 <script>
 (function(){
   var LSKEY = 'gxu.v2';
@@ -303,6 +319,63 @@
     localStorage.setItem(LSKEY, JSON.stringify(store));
     // 安卓 App 内运行时，同步参数给桌面小组件
     try{ if(window.GxuAndroid) window.GxuAndroid.sync(JSON.stringify(store)); }catch(e){}
+  }
+  save();   // 打开即同步一次，保证安卓小组件首次安装也有参数
+
+  // ============ 云端众包（本地优先；云不可用时静默降级为纯本地） ============
+  var CLOUD_CFG = {
+    endpoint: 'https://gxu-south-gate-light.app.workbuddy.host',
+    publishableKey: 'wbpk_Scgtoj63KkEXjLolNTFwFh_p2t9h4nNbPXsIq9uZnNqEPM3mp2zTIz0'
+  };
+  var cloud = null, sharedInfo = null;
+  try{
+    if(window.WorkBuddyCloud) cloud = WorkBuddyCloud.createWorkBuddyCloud(CLOUD_CFG);
+  }catch(e){ cloud = null; }
+
+  // 上传一条观测样本（静默失败，不影响本地流程）
+  function uploadSample(obs){
+    if(!cloud) return;
+    try{
+      cloud.database.from('calibrations')
+        .insert({ color: obs.color, boundary: obs.B, client_t: obs.t/1000, w: store.admin ? 5 : 1 })
+        .then(function(){}, function(){});
+    }catch(e){}
+  }
+
+  // 拉取近24h共享观测，折叠到当前周期后取中位数融合出共享锚点
+  // （本地已拟合的用户保留自己的参数，只显示共享信息）
+  function syncShared(done){
+    if(!cloud){ if(done) done(); return; }
+    var since = new Date(Date.now() - 24*3600*1000).toISOString();
+    cloud.database.from('calibrations')
+      .select('color,boundary,created_at,w')
+      .gte('created_at', since)
+      .order('created_at', { ascending:false })
+      .limit(50)
+      .then(function(res){
+        var rows = (res && res.data) || [];
+        if(rows.length >= 2){
+          if(!store.params.fitted){
+            var P = store.params, C = P.R + P.G, now = Date.now()/1000;
+            // 折叠到当前周期后按权重取加权中位数（管理员样本 w=5）
+            var items = rows.map(function(r){
+              var base = (r.color==='red') ? (r.boundary - P.R) : r.boundary;
+              var k = Math.round((now - base)/C);
+              return { a: base + k*C, w: (r.w>0 && r.w<=100) ? r.w : 1 };
+            }).sort(function(x,y){ return x.a - y.a; });
+            var total = items.reduce(function(s,it){ return s + it.w; }, 0);
+            var acc = 0, med = items[items.length-1].a;
+            for(var i=0;i<items.length;i++){
+              acc += items[i].w;
+              if(acc >= total/2){ med = items[i].a; break; }
+            }
+            store.params.anchor = med * 1000;
+            save();
+          }
+          sharedInfo = { n: rows.length };
+        }
+        if(done) done();
+      }, function(){ if(done) done(); });
   }
 
   // ============ 灯态推算 ============
@@ -385,6 +458,7 @@
     }else{
       info += '<br>⚠️ 未校准（初始估计值），请到路口报读秒';
     }
+    if(sharedInfo) info += '<br>☁️ 共享校准已生效 · 近24h 云端 '+sharedInfo.n+' 条观测（众人数据融合）';
     cycleInfo.innerHTML = info;
 
     renderAdvice(now);
@@ -426,6 +500,48 @@
     winTable.innerHTML = rows;
   }
 
+  // ============ 管理码（哈希校验，管理员设备云样本权重×5、跳过防捣蛋拦截） ============
+  var ADMIN_HASH = 'e5692e0f1bf2bb755819c28afe46e2da1f9a70f75d68fba1ae0993a11a02e6dc';
+
+  function sha256(text){
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(function(buf){
+      return Array.prototype.map.call(new Uint8Array(buf), function(b){
+        return ('0'+b.toString(16)).slice(-2);
+      }).join('');
+    });
+  }
+
+  function renderAdmin(){
+    var el = $('adminStatus');
+    if(store.admin){
+      el.style.display = 'block';
+      el.innerHTML = '✅ 管理员设备已激活：云样本权重 ×5，提交跳过防捣蛋拦截。'
+        + '<a href="#" id="adminOff" style="color:var(--sub);margin-left:6px;">退出</a>';
+      $('adminOff').addEventListener('click', function(e){
+        e.preventDefault(); store.admin = false; save(); renderAdmin();
+      });
+    }else{
+      el.style.display = 'none';
+    }
+  }
+
+  $('adminBtn').addEventListener('click', function(){
+    var code = $('adminCode').value.trim();
+    if(!code) return;
+    if(!crypto.subtle){ alert('管理码激活需要联网（https 环境）'); return; }
+    sha256(code).then(function(h){
+      if(h === ADMIN_HASH){
+        store.admin = true; save(); renderAdmin();
+        $('adminCode').value = '';
+      }else{
+        var el = $('adminStatus');
+        el.style.display = 'block'; el.textContent = '❌ 管理码不对';
+      }
+    });
+  });
+
+  renderAdmin();
+
   // ============ 观测提交（含防捣蛋） ============
   var pendingObs = null;
 
@@ -436,7 +552,7 @@
     var dev = store.params.fitted ? deviation(Bs, color) : 0;
     var obs = { t:t, color:color, remain:remain, B:Bs, w:1, dev:dev };
 
-    if(store.params.fitted && dev > 8){
+    if(store.params.fitted && dev > 8 && !store.admin){
       // 触发防捣蛋保护
       pendingObs = obs;
       $('guardText').innerHTML =
@@ -453,6 +569,7 @@
     store.samples.push(obs);
     if(store.samples.length > 200) store.samples = store.samples.slice(-200);
     save();
+    uploadSample(obs);   // 众包上传（静默失败）
     obsRemain.value = '';
     renderSamples();
     render();
@@ -490,7 +607,7 @@
     save(); drVal.textContent = store.dr.toFixed(2)+'s';
   });
 
-  // ============ 样本列表 ============
+  // ============ 样本列表（可删除误触记录） ============
   function renderSamples(){
     sampleCount.textContent = store.samples.length;
     var S = store.samples.slice(-8).reverse();
@@ -499,7 +616,8 @@
       return;
     }
     var html = '';
-    S.forEach(function(s){
+    S.forEach(function(s, i){
+      var idx = store.samples.length - 1 - i;   // 在 store.samples 中的真实下标
       var lowW = s.w < 1;
       var out = store.params.fitted && s.dev > 5;
       html += '<div class="sample-item'+(out?' out':'')+'">'
@@ -507,9 +625,25 @@
         + fmtClock(s.t) + ' · 剩 ' + s.remain + 's'
         + '<span class="tag'+(lowW?' low':'')+'">'
         + (out ? '已剔除' : (lowW ? '低权重30%' : (store.params.fitted? '偏差 '+s.dev.toFixed(1)+'s' : '已记录')))
-        + '</span></div>';
+        + '</span>'
+        + '<span class="del" data-idx="'+idx+'" title="删除这条记录">✕</span>'
+        + '</div>';
     });
     sampleList.innerHTML = html;
+    // 删除按钮（事件委托）
+    Array.prototype.forEach.call(sampleList.querySelectorAll('.del'), function(btn){
+      btn.addEventListener('click', function(){
+        var idx = parseInt(btn.dataset.idx, 10);
+        var s = store.samples[idx];
+        if(!s) return;
+        if(confirm('删除这条观测？（'+fmtClock(s.t)+' · 剩 '+s.remain+'s）\n删除后可重新拟合。注意：已匿名上传到云端的副本无法撤回，但会被众人的中位数融合自然稀释。')){
+          store.samples.splice(idx, 1);
+          save();
+          renderSamples();
+          render();
+        }
+      });
+    });
   }
 
   // ============ 参数拟合：网格搜索 + IRLS 精修 ============
@@ -636,6 +770,7 @@
   // ============ 主循环 ============
   renderSamples();
   render();
+  syncShared(function(){ render(); });   // 拉取云端共享锚点（异步，失败静默）
   setInterval(render, 200);
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) render(); });
 })();

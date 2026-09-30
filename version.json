@@ -1,0 +1,6 @@
+{
+  "versionCode": 2,
+  "versionName": "1.2.0",
+  "url": "https://github.com/ASTROX100ZZZ/gxu-light/releases/latest/download/app-debug.apk",
+  "notes": "新增应用内自动更新：启动时检测新版本，一键下载安装，无需再手动去 GitHub 下载。"
+}

@@ -43,5 +43,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         web.loadUrl("https://gxu-south-gate-light.app.workbuddy.host/")
+
+        Updater.check(this)   // 应用内自动更新检查
     }
 }
