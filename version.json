@@ -1,6 +1,6 @@
 {
-  "versionCode": 2,
-  "versionName": "1.2.0",
+  "versionCode": 3,
+  "versionName": "1.3.0",
   "url": "https://github.com/ASTROX100ZZZ/gxu-light/releases/latest/download/app-debug.apk",
-  "notes": "新增应用内自动更新：启动时检测新版本，一键下载安装，无需再手动去 GitHub 下载。"
+  "notes": "应用图标更换为红绿灯样式（深色灯箱，上红下绿）。提示：想要桌面上实时显示灯色和秒数，请长按桌面添加「南门红绿灯」小组件。"
 }

@@ -9,7 +9,7 @@
 
     <application
         android:label="南门红绿灯"
-        android:icon="@android:drawable/ic_dialog_info"
+        android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
         <activity android:name=".MainActivity" android:exported="true">
