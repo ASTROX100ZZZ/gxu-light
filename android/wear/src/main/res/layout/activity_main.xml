@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#E5484D">
+
+    <TextView
+        android:id="@+id/stateView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="红灯"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/secView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="--"
+        android:textColor="#FFFFFF"
+        android:textSize="64sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="秒后变灯"
+        android:textColor="#CCFFFFFF"
+        android:textSize="11sp" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/btnRed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="36dp"
+            android:text="变红"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnGreen"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="36dp"
+            android:layout_marginStart="8dp"
+            android:text="变绿"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/adjPanel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="6dp"
+        android:visibility="gone">
+
+        <Button android:id="@+id/rMinus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="32dp" android:text="R−" android:textSize="12sp" />
+        <Button android:id="@+id/rPlus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="32dp" android:text="R+" android:textSize="12sp" />
+        <Button android:id="@+id/gMinus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="32dp" android:text="G−" android:textSize="12sp" />
+        <Button android:id="@+id/gPlus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="32dp" android:text="G+" android:textSize="12sp" />
+        <Button android:id="@+id/adjDone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="32dp" android:text="✓" android:textSize="12sp" />
+    </LinearLayout>
+</LinearLayout>
