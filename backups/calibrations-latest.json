@@ -1,0 +1,19 @@
+{
+  "source": "workbuddy cloud service, app wbapp_Scgtoj63KkEXjLolNTFwFh, table calibrations",
+  "exported_at": "2026-09-30T11:55:00+08:00",
+  "note": "boundary = 推断出的变灯时刻(Unix秒); color: red=红转绿, green=绿转红; w = 样本权重(管理员5/普通1)",
+  "rows": [
+    {
+      "boundary": 1790737893.363,
+      "color": "red",
+      "w": 1,
+      "created_at": "2026-09-30T11:09:53.342227+08:00"
+    },
+    {
+      "boundary": 1790683415,
+      "color": "green",
+      "w": 1,
+      "created_at": "2026-09-30T11:04:35.59835+08:00"
+    }
+  ]
+}

@@ -244,13 +244,13 @@
     </div>
   </details>
 
-  <details>
-    <summary>💾 数据备份与迁移（防服务不可用）</summary>
+  <details id="backupCard" style="display:none;">
+    <summary>💾 数据备份与迁移（管理员 · 防服务不可用）</summary>
     <div class="panel">
       <p class="hint">
-        全部数据（观测样本、拟合参数、设置）都保存在<b>本机浏览器</b>，断网也能用。
-        定期点"导出备份"把 JSON 文件存到微信文件传输助手/网盘；
-        换手机、换浏览器或未来云端服务不可用时，"导入恢复"即可原样搬家。
+        此功能仅管理员可见。全部数据（观测样本、拟合参数、设置）都保存在<b>本机浏览器</b>，断网也能用。
+        云端校准数据另有双保险：① 云端数据库收到观测即自动存档；② 定时自动把全部校准数据和项目代码备份到 GitHub 仓库。
+        若未来云端服务不可用，"导出备份"可取出本机数据，配合 GitHub 上的存档即可把整个项目迅速迁移到任何新平台。
       </p>
       <div class="backup-row">
         <button class="primary" id="exportBtn">⬇️ 导出备份</button>
@@ -513,9 +513,11 @@
 
   function renderAdmin(){
     var el = $('adminStatus');
+    var bk = $('backupCard');
+    if(bk) bk.style.display = store.admin ? '' : 'none';
     if(store.admin){
       el.style.display = 'block';
-      el.innerHTML = '✅ 管理员设备已激活：云样本权重 ×5，提交跳过防捣蛋拦截。'
+      el.innerHTML = '✅ 管理员设备已激活：云样本权重 ×5，提交跳过防捣蛋拦截，页面底部可见数据备份功能。'
         + '<a href="#" id="adminOff" style="color:var(--sub);margin-left:6px;">退出</a>';
       $('adminOff').addEventListener('click', function(e){
         e.preventDefault(); store.admin = false; save(); renderAdmin();
