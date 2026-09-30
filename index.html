@@ -193,7 +193,7 @@
       <p class="hint">
         在路口看到读秒时，选灯色、填剩余秒数、点提交——<b>时间戳在你点击瞬间本地记录</b>，
         再自动扣除反应延迟。每条观测会换算成一个"变灯边界时刻"，积累多条后点下方
-        <b>重新拟合</b>，即可反推出真实的红/绿时长（101s/40s 只是初始估计）。<br>
+        <b>重新拟合</b>，即可反推出真实的红/绿时长（101s/44s 只是初始估计）。<br>
         🛡️ <b>防捣蛋保护</b>：与当前模型预测偏差超过 8 秒的输入会被拦截提示，
         强制采纳也只按 30% 权重参与拟合；拟合时残差超 5 秒的样本自动剔除。
       </p>
@@ -247,7 +247,7 @@
   </details>
 
   <div class="footer">
-    初始配时 红 101s / 绿 40s 为人工粗估，经多次观测拟合后会自动修正。<br>
+    配时 红 101s（估）/ 绿 44s，相位已于 9月29日20:03 现场实测锚定；多次观测拟合后还会自动修正。<br>
     仅供出行参考，过马路请看灯不看手机。
   </div>
 </div>
@@ -270,22 +270,29 @@
   var LSKEY = 'gxu.v2';
 
   // ============ 数据存储（单一 JSON，本地优先） ============
+  // 出厂锚点：2026-09-29 20:03:35 (+0800) 现场实测红变绿时刻；绿灯 44s 为实测下限
+  var PRESET = { R: 101, G: 44, anchor: 1790683415000 };
+
   function loadStore(){
     try{
       var s = JSON.parse(localStorage.getItem(LSKEY));
-      if(s && s.params && Array.isArray(s.samples)) return s;
+      if(s && s.params && Array.isArray(s.samples)){
+        // 尚未积累任何观测的占位状态，跟随最新出厂锚点
+        if(!s.params.fitted && s.samples.length===0){
+          s.params.R = PRESET.R; s.params.G = PRESET.G; s.params.anchor = PRESET.anchor;
+        }
+        return s;
+      }
     }catch(e){}
     var s = {
       version: 2,
       samples: [],                       // {t,color,remain,B,w,dev}
-      params: { R:101, G:40, anchor: Date.now(), fitted:false, rms:null, nUsed:0, nTotal:0, fittedAt:null },
+      params: { R:PRESET.R, G:PRESET.G, anchor:PRESET.anchor, fitted:false, rms:null, nUsed:0, nTotal:0, fittedAt:null },
       dr: 0.5,                           // 反应延迟补偿（秒）
       walkSec: 300
     };
     // 兼容旧版数据
     try{
-      var oa = parseFloat(localStorage.getItem('gxu.anchor'));
-      if(oa && !isNaN(oa)) s.params.anchor = oa;
       var ow = parseInt(localStorage.getItem('gxu.walk'),10);
       if(ow) s.walkSec = ow;
     }catch(e){}
